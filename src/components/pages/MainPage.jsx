@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; //하이퍼링크-바로가기
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import Button from "../ui/Button";
 import PostList from "../list/PostList";
-import data from "../../../data.json";
 
 //모든 콘텐츠를 감싸는 최상위 DIV
 const Wrapper = styled.div`
@@ -29,8 +28,14 @@ function MainPage() {
   //console.log(data);
 
   useEffect(() => {
-    const storedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-    setPosts(storedPosts);
+    //특별한 설정 없으면 get 방식
+    fetch("http://localhost:5000/posts")
+      .then((res) => res.json()) //통신의 응답을 js json 객체로 변환
+      .then((data) => setPosts(data))
+      .catch((err) => console.error("Error fetching posts", err));
+
+    // const storedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+    // setPosts(storedPosts);
   }, []);
 
   return (
@@ -48,7 +53,7 @@ function MainPage() {
         <PostList
           posts={posts}
           onClickItem={(item) => {
-            navigate(`/post/${item.id}`);
+            navigate(`/posts/${item._id}`); //몽고db의 id를 사용
           }}
         ></PostList>
       </Container>

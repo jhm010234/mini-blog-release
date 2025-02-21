@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styled from "styled-components";
 import PostList from "../list/PostList";
 import TextInput from "../ui/TextInput";
 import Button from "../ui/Button";
-import data from "../../../data.json";
 
 const Wrapper = styled.div`
   padding: 16px;
@@ -65,44 +64,48 @@ function PostViewPage(props) {
   const [comment, setComment] = useState("");
 
   //useEffect : 컴퍼넌트 생명주기(Mount, Update)
+  //벡엔드에서 게시글 단건 조회하기
   useEffect(() => {
-    const storedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-    console.log("storedPosts:" + storedPosts);
-    const foundPost = storedPosts.find((item) => item.id == postId);
-    console.log("postId:" + postId);
-    console.log("foundPost:" + foundPost);
-    setPost(foundPost);
+    fetch(`http://localhost:5000/posts/${postId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data) {
+          setPost(data);
+        } else {
+          console.error("Post not found");
+        }
+      });
   }, [postId]);
 
+  //댓글 추가 함수
   const handleAddComment = () => {
     if (!comment) return;
 
-    const newComment = {
-      id: Date.now().toString(),
-      content: comment,
-    };
-
-    const updatedPost = {
-      ...post,
-      comments: [...post.comments, newComment],
-    };
-
-    const storedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-    const updatedPosts = storedPosts.map((item) =>
-      //post목록에서 수정된 post아이템만 업데이트한다.
-      item.id == postId ? updatedPost : item
-    );
-
-    localStorage.setItem("posts", JSON.stringify(updatedPosts));
-    setPost(updatedPost);
-    setComment("");
+    fetch(`http://localhost:5000/posts/${postId}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: comment }),
+    })
+      .then((res) => res.json())
+      .then((updatedPost) => {
+        setPost(updatedPost); //업데이트된 게시글 상태 반영
+        setComment("");
+      })
+      .catch((err) => console.error("Error adding comment:", err));
   };
 
+  //게시글 삭제
   const handleDeletePost = () => {
-    const storedPosts = JSON.parse(localStorage.getItem("posts")) || [];
-    const updatedPosts = storedPosts.filter((item) => item.id != postId);
+    fetch(`http://localhost:5000/posts/${postId}`, {
+      method: "DELETE",
+    })
+      .then((res) => res.json())
+      .then((msg) => {
+        console.log(msg);
+        navigate("/");
+      })
+      .catch((err) => console.error("Error deleting post", err));
 
-    localStorage.setItem("posts", JSON.stringify(updatedPosts));
     navigate("/");
   };
 
@@ -128,7 +131,7 @@ function PostViewPage(props) {
 
         {post.comments.length > 0 && <CommentLabel>댓글</CommentLabel>}
         {post.comments.map((comment) => (
-          <CommentContainer key={comment.id}>
+          <CommentContainer key={comment._id}>
             <ContentText>{comment.content}</ContentText>
           </CommentContainer>
         ))}
